@@ -1,0 +1,7 @@
+{
+  "name": "getAir SmartControl",
+  "domain": "getair_smartcontrol",
+  "documentation": "https://github.com/Chillkroete1206/home-assistant-getair-smartcontrol",
+  "version": "0.5.0",
+  "iot_class": "cloud_polling"
+}

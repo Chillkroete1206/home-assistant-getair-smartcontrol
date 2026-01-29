@@ -1,0 +1,142 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "getAir SmartControl Konfiguration",
+        "description": "Geben Sie Ihre getAir Anmeldedaten ein. Die Geräte-ID wird automatisch ermittelt.",
+        "data": {
+          "auth_url": "Authentifizierungs-URL",
+          "api_url": "API-URL",
+          "client_id": "Client-ID",
+          "username": "Benutzername",
+          "password": "Passwort"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "invalid_credentials": "Ungültige Anmeldedaten",
+      "no_device_found": "Kein getAir Gerät auf diesem Account gefunden"
+    },
+    "abort": {
+      "already_configured": "Gerät bereits konfiguriert"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "getAir SmartControl Optionen",
+        "description": "Passen Sie die Integration an",
+        "data": {
+          "polling_interval": "Abfrage-Intervall (Sekunden)",
+          "enable_zone_1": "Zone 1 aktivieren",
+          "enable_zone_2": "Zone 2 aktivieren",
+          "enable_zone_3": "Zone 3 aktivieren"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "air_quality": {
+        "name": "Luftqualität"
+      },
+      "air_pressure": {
+        "name": "Luftdruck"
+      },
+      "humidity": {
+        "name": "Luftfeuchtigkeit"
+      },
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "system_runtime": {
+        "name": "System: Gesamtlaufzeit"
+      },
+      "system_boot_time": {
+        "name": "System: Boot-Zeit"
+      },
+      "system_iaq_accuracy": {
+        "name": "System: IAQ-Genauigkeit"
+      },
+      "system_num_zones": {
+        "name": "System: Anzahl Zonen"
+      },
+      "system_modelock": {
+        "name": "System: Modus-Sperre"
+      },
+      "last_update": {
+        "name": "System: Letzte Aktualisierung"
+      },
+      "connection_status": {
+        "name": "System: Verbindungsstatus"
+      },
+      "system_air_quality": {
+        "name": "System: Luftqualität (IAQ)"
+      },
+      "system_air_pressure": {
+        "name": "System: Luftdruck"
+      },
+      "system_humidity": {
+        "name": "System: Luftfeuchtigkeit"
+      },
+      "system_temperature": {
+        "name": "System: Temperatur"
+      },
+      "zone_temperature": {
+        "name": "Temperatur (innen)"
+      },
+      "zone_humidity": {
+        "name": "Luftfeuchtigkeit (innen)"
+      },
+      "zone_outdoor_temperature": {
+        "name": "Temperatur (außen)"
+      },
+      "zone_outdoor_humidity": {
+        "name": "Luftfeuchtigkeit (außen)"
+      },
+      "zone_runtime": {
+        "name": "Laufzeit"
+      },
+      "zone_filter_runtime": {
+        "name": "Filter-Laufzeit"
+      },
+      "zone_target_temperature": {
+        "name": "Zieltemperatur"
+      },
+      "zone_target_humidity": {
+        "name": "Ziel-Luftfeuchtigkeitsbereich"
+      },
+      "zone_time_profile": {
+        "name": "Aktives Zeitprofil"
+      }
+    },
+    "binary_sensor": {
+      "system_modelock": {
+        "name": "System: Modus-Sperre"
+      },
+      "zone_auto_mode_voc": {
+        "name": "VOC Auto-Modus"
+      },
+      "zone_auto_mode_silent": {
+        "name": "Silent-Modus"
+      }
+    },
+    "select": {
+      "zone_mode": {
+        "name": "Betriebsmodus"
+      }
+    },
+    "fan": {
+      "zone_1": {
+        "name": "Lüfter"
+      },
+      "zone_2": {
+        "name": "Lüfter"
+      },
+      "zone_3": {
+        "name": "Lüfter"
+      }
+    }
+  }
+}
