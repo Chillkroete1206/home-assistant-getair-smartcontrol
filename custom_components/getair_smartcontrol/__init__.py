@@ -13,7 +13,7 @@ from .const import (
     DOMAIN,
     CONF_AUTH_URL,
     CONF_API_URL,
-    CONF_CLIENT_ID,
+    CLIENT_ID,
     CONF_DEVICE_ID,
 )
 
@@ -33,10 +33,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Log configuration (without sensitive data)
     _LOGGER.debug(
-        "Configuration: auth_url=%s, api_url=%s, client_id=%s, username=%s, device_id=%s",
+        "Configuration: auth_url=%s, api_url=%s, username=%s, device_id=%s",
         entry.data.get(CONF_AUTH_URL),
         entry.data.get(CONF_API_URL),
-        entry.data.get(CONF_CLIENT_ID),
         entry.data.get(CONF_USERNAME),
         entry.data.get(CONF_DEVICE_ID),
     )
@@ -45,7 +44,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     credentials_data = {
         CONF_AUTH_URL: entry.data[CONF_AUTH_URL],
         CONF_API_URL: entry.data[CONF_API_URL],
-        CONF_CLIENT_ID: entry.data[CONF_CLIENT_ID],
+        "client_id": CLIENT_ID,
         CONF_USERNAME: entry.data[CONF_USERNAME],
         CONF_PASSWORD: entry.data[CONF_PASSWORD],
     }

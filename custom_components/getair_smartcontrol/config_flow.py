@@ -8,7 +8,7 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import DOMAIN, CONF_AUTH_URL, CONF_API_URL, CONF_CLIENT_ID, CONF_DEVICE_ID
+from .const import DOMAIN, CONF_AUTH_URL, CONF_API_URL, CONF_DEVICE_ID, CLIENT_ID
 from .api_client import GetAirAPIClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,10 +35,9 @@ class GetAirConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.info("=" * 80)
             _LOGGER.info("Config flow: User credentials received")
             _LOGGER.debug(
-                "Credentials (without password): auth_url=%s, api_url=%s, client_id=%s, username=%s",
+                "Credentials (without password): auth_url=%s, api_url=%s, username=%s",
                 user_input.get(CONF_AUTH_URL),
                 user_input.get(CONF_API_URL),
-                user_input.get(CONF_CLIENT_ID),
                 user_input.get(CONF_USERNAME),
             )
             
@@ -89,7 +88,6 @@ class GetAirConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema({
             vol.Required(CONF_AUTH_URL, default="https://auth.getair.eu/oauth/token"): str,
             vol.Required(CONF_API_URL, default="https://be01.ga-cc.de/api/v1/"): str,
-            vol.Required(CONF_CLIENT_ID, default="7jPuzDmLiKFF6oPtvsFUhBkyPahA7Lh5"): str,
             vol.Required(CONF_USERNAME): str,
             vol.Required(CONF_PASSWORD): str,
         })
@@ -162,7 +160,7 @@ class GetAirConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         credentials_data = {
             "auth_url": credentials[CONF_AUTH_URL],
             "api_url": credentials[CONF_API_URL],
-            "client_id": credentials[CONF_CLIENT_ID],
+            "client_id": CLIENT_ID,
             "username": credentials[CONF_USERNAME],
             "password": credentials[CONF_PASSWORD],
         }

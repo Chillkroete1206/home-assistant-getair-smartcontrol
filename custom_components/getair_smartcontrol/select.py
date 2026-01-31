@@ -15,14 +15,29 @@ from .const import DOMAIN, MANUFACTURER
 _LOGGER = logging.getLogger(__name__)
 
 # Available modes for getAir zones
+# Using German names directly since Home Assistant doesn't translate select options well
 AVAILABLE_MODES = [
-    "ventilate",
-    "ventilate_hr",
-    "ventilate_inv",
-    "night",
-    "auto",
-    "rush",
+    "ventilate",        # API value
+    "ventilate_hr",     
+    "ventilate_inv",    
+    "night",            
+    "auto",             
+    "rush",             
+    "rush_hr",          
+    "rush_inv",         
 ]
+
+# Human-readable mode labels (German)
+MODE_LABELS = {
+    "ventilate": "Normales Lüften",
+    "ventilate_hr": "Lüften mit WRG",
+    "ventilate_inv": "Inverses Lüften",
+    "night": "Nachtmodus",
+    "auto": "Automatik",
+    "rush": "Stoßlüften",
+    "rush_hr": "Stoßlüften mit WRG",
+    "rush_inv": "Inverses Stoßlüften",
+}
 
 
 @dataclass
@@ -51,7 +66,6 @@ class GetAirZoneModeSelect(CoordinatorEntity, SelectEntity):
     """Representation of a getAir Zone mode selector."""
 
     _attr_has_entity_name = True
-    _attr_options = AVAILABLE_MODES
     entity_description: GetAirSelectEntityDescription
 
     def __init__(
@@ -68,6 +82,11 @@ class GetAirZoneModeSelect(CoordinatorEntity, SelectEntity):
         self._attr_unique_id = f"{device_id}_zone_{self._zone_idx}_betriebsmodus"
 
     @property
+    def options(self) -> list[str]:
+        """Return the list of available options with German labels."""
+        return [MODE_LABELS[mode] for mode in AVAILABLE_MODES]
+
+    @property
     def device_info(self) -> DeviceInfo:
         """Return device information."""
         zone_name = self.coordinator.data["zones"][self._zone_idx]["name"]
@@ -81,21 +100,38 @@ class GetAirZoneModeSelect(CoordinatorEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        """Return the current mode."""
+        """Return the current mode (translated to German)."""
         if not self.coordinator.data:
             return None
 
         zone_data = self.coordinator.data["zones"].get(self._zone_idx, {})
-        return zone_data.get("mode")
+        mode_value = zone_data.get("mode")
+        
+        # Translate API value to German label
+        if mode_value and mode_value in MODE_LABELS:
+            return MODE_LABELS[mode_value]
+        
+        return mode_value  # Fallback to API value if not in our list
 
     async def async_select_option(self, option: str) -> None:
-        """Select a new mode."""
-        _LOGGER.debug(f"Setting zone {self._zone_idx} mode to {option}")
-        success = await self.coordinator.async_set_zone_mode(self._zone_idx, option)
+        """Select a new mode (convert from German label to API value)."""
+        # Convert German label back to API value
+        api_value = None
+        for mode, label in MODE_LABELS.items():
+            if label == option:
+                api_value = mode
+                break
+        
+        if not api_value:
+            _LOGGER.error(f"Unknown mode option: {option}")
+            return
+        
+        _LOGGER.debug(f"Setting zone {self._zone_idx} mode to {api_value} ({option})")
+        success = await self.coordinator.async_set_zone_mode(self._zone_idx, api_value)
         if success:
             self.async_write_ha_state()
         else:
-            _LOGGER.error(f"Failed to set zone {self._zone_idx} mode to {option}")
+            _LOGGER.error(f"Failed to set zone {self._zone_idx} mode to {api_value}")
 
 
 async def async_setup_entry(

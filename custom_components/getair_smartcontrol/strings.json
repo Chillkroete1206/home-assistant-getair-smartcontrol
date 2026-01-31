@@ -119,7 +119,17 @@
     },
     "select": {
       "zone_mode": {
-        "name": "Betriebsmodus"
+        "name": "Betriebsmodus",
+        "state": {
+          "ventilate": "Normales Lüften",
+          "ventilate_hr": "Lüften mit WRG",
+          "ventilate_inv": "Inverses Lüften",
+          "night": "Nachtmodus",
+          "auto": "Automatik",
+          "rush": "Stoßlüften",
+          "rush_hr": "Stoßlüften mit WRG",
+          "rush_inv": "Inverses Stoßlüften"
+        }
       }
     },
     "fan": {
