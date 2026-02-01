@@ -78,6 +78,21 @@
       "connection_status": {
         "name": "Verbindungsstatus"
       },
+      "system_type": {
+        "name": "System-Typ"
+      },
+      "system_version": {
+        "name": "Systemversion"
+      },
+      "system_fw_app_version": {
+        "name": "Firmware-Version"
+      },
+      "system_notification": {
+        "name": "Benachrichtigung"
+      },
+      "system_notification_time": {
+        "name": "Benachrichtigungszeit"
+      },
       "zone_temperature": {
         "name": "Temperatur (innen)"
       },
@@ -104,17 +119,47 @@
       },
       "zone_time_profile": {
         "name": "Aktives Zeitprofil"
+      },
+      "time_profile_1_name": {
+        "name": "Zeitprofil 1 Name"
+      },
+      "time_profile_2_name": {
+        "name": "Zeitprofil 2 Name"
+      },
+      "time_profile_3_name": {
+        "name": "Zeitprofil 3 Name"
+      },
+      "time_profile_4_name": {
+        "name": "Zeitprofil 4 Name"
+      },
+      "time_profile_5_name": {
+        "name": "Zeitprofil 5 Name"
+      },
+      "time_profile_6_name": {
+        "name": "Zeitprofil 6 Name"
+      },
+      "time_profile_7_name": {
+        "name": "Zeitprofil 7 Name"
+      },
+      "time_profile_8_name": {
+        "name": "Zeitprofil 8 Name"
+      },
+      "time_profile_9_name": {
+        "name": "Zeitprofil 9 Name"
+      },
+      "time_profile_10_name": {
+        "name": "Zeitprofil 10 Name"
       }
     },
     "binary_sensor": {
       "system_modelock": {
         "name": "Modus-Sperre"
       },
-      "zone_auto_mode_voc": {
-        "name": "VOC Auto-Modus"
+      "system_supports_auto_update": {
+        "name": "Unterstützt Auto-Update"
       },
-      "zone_auto_mode_silent": {
-        "name": "Silent-Modus"
+      "system_auto_update_enabled": {
+        "name": "Auto-Update aktiviert"
       }
     },
     "select": {
@@ -130,6 +175,12 @@
           "rush_hr": "Stoßlüften mit WRG",
           "rush_inv": "Inverses Stoßlüften"
         }
+      },
+      "zone_target_humidity_control": {
+        "name": "Ziel-Luftfeuchtigkeit"
+      },
+      "zone_time_profile_control": {
+        "name": "Zeitprofil"
       }
     },
     "fan": {
@@ -141,6 +192,47 @@
       },
       "zone_3": {
         "name": "Lüfter"
+      }
+    },
+    "number": {
+      "zone_target_temperature_control": {
+        "name": "Zieltemperatur"
+      },
+      "zone_filter_runtime_control": {
+        "name": "Filter-Laufzeit zurücksetzen"
+      },
+      "zone_time_profile_control": {
+        "name": "Zeitprofil"
+      },
+      "zone_mode_deadline_control": {
+        "name": "Modus-Deadline (Minuten)"
+      }
+    },
+    "switch": {
+      "zone_auto_mode_voc_switch": {
+        "name": "VOC Auto-Modus"
+      },
+      "zone_auto_mode_silent_switch": {
+        "name": "Silent-Modus"
+      }
+    },
+    "text": {
+      "zone_name": {
+        "name": "Zonenname"
+      }
+    }
+  },
+  "entity_component": {
+    "_": {
+      "state": {
+        "ventilate": "Normales Lüften",
+        "ventilate_hr": "Lüften mit WRG",
+        "ventilate_inv": "Inverses Lüften",
+        "night": "Nachtmodus",
+        "auto": "Automatik",
+        "rush": "Stoßlüften",
+        "rush_hr": "Stoßlüften mit WRG",
+        "rush_inv": "Inverses Stoßlüften"
       }
     }
   }

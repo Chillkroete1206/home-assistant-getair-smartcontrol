@@ -8,14 +8,25 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+"""Fan entities for getAir SmartControl."""
+import logging
+from typing import Any
+
+from homeassistant.components.fan import FanEntity, FanEntityFeature
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .coordinator import GetAirCoordinator
 from .const import DOMAIN, MANUFACTURER
 
 _LOGGER = logging.getLogger(__name__)
 
-# Map of getAir speed values (0.5-4.0) to percentage (0-100)
+# Map of getAir speed values (0.0-4.0) to percentage (0-100)
 SPEED_TO_PERCENT = {
+    0.0: 0,
     0.5: 15,
     1.0: 30,
     1.5: 45,
@@ -26,14 +37,14 @@ SPEED_TO_PERCENT = {
     4.0: 100,
 }
 
+# Reverse mapping: percentage -> speed
 PERCENT_TO_SPEED = {v: k for k, v in SPEED_TO_PERCENT.items()}
 
 
 class GetAirZoneFan(CoordinatorEntity, FanEntity):
     """Representation of a getAir Zone as a Fan entity."""
 
-    _attr_has_entity_name = True
-    _attr_name = None
+    _attr_has_entity_name = False
     _attr_supported_features = FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
 
     def __init__(
@@ -43,19 +54,28 @@ class GetAirZoneFan(CoordinatorEntity, FanEntity):
         zone_idx: int,
         zone_name: str,
     ):
-        """
-        Initialize the fan entity.
-
-        :param coordinator: Data coordinator
-        :param device_id: Device ID
-        :param zone_idx: Zone index (1-3)
-        :param zone_name: Zone name for display
-        """
+        """Initialize the fan entity."""
         super().__init__(coordinator)
         self._device_id = device_id
         self._zone_idx = zone_idx
-        self._attr_unique_id = f"{device_id}_zone_{zone_idx}"
-        self._attr_translation_key = f"zone_{zone_idx}"
+        
+        # Build entity_id with getair prefix, device_id, and zone name
+        zone_name_clean = zone_name.lower().replace(" ", "_").replace("-", "_")
+        zone_name_clean = "".join(c if c.isalnum() or c == "_" else "_" for c in zone_name_clean)
+        
+        self._attr_unique_id = f"getair_{device_id}_{zone_idx}_{zone_name_clean}_fan"
+        self._attr_icon = "mdi:fan"
+        
+        # Keep last non-zero percentage per entity
+        self._last_nonzero_percentage: int | None = None
+
+    @property
+    def name(self) -> str:
+        """Return the name of the fan."""
+        if self.coordinator.data:
+            zone_name = self.coordinator.data["zones"][self._zone_idx]["name"]
+            return f"{zone_name} Lüfter"
+        return "Lüfter"
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -78,14 +98,15 @@ class GetAirZoneFan(CoordinatorEntity, FanEntity):
         if speed is None:
             return None
 
-        # Find closest percentage
-        closest_percent = min(PERCENT_TO_SPEED.keys(), key=lambda x: abs(PERCENT_TO_SPEED[x] - speed))
-        return closest_percent
+        # Find closest speed key and map to percentage
+        closest_speed = min(SPEED_TO_PERCENT.keys(), key=lambda s: abs(s - speed))
+        return SPEED_TO_PERCENT.get(closest_speed)
 
     @property
     def is_on(self) -> bool:
         """Return True if fan is on."""
-        return self.percentage and self.percentage > 0
+        perc = self.percentage
+        return perc is not None and perc > 0
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -94,7 +115,7 @@ class GetAirZoneFan(CoordinatorEntity, FanEntity):
             return {}
 
         zone_data = self.coordinator.data["zones"][self._zone_idx]
-        
+
         return {
             "mode": zone_data.get("mode"),
             "temperature": zone_data.get("temperature"),
@@ -118,34 +139,47 @@ class GetAirZoneFan(CoordinatorEntity, FanEntity):
         **kwargs: Any,
     ) -> None:
         """Turn on the fan."""
+        # If no percentage provided, restore last non-zero or default to 30%
         if percentage is None:
-            percentage = 30  # Default to 30%
+            percentage = self._last_nonzero_percentage or 30
 
         await self.async_set_percentage(percentage)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the fan."""
-        # Set to minimum speed (0.5 = 15%)
-        await self.async_set_percentage(15)
+        # Save current percentage then set speed to 0.0
+        current = self.percentage
+        if current and current > 0:
+            self._last_nonzero_percentage = current
+
+        await self.async_set_percentage(0)
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed percentage."""
-        # Find closest speed value
-        closest_speed = PERCENT_TO_SPEED.get(
-            min(PERCENT_TO_SPEED.keys(), key=lambda x: abs(x - percentage))
-        )
+        # If setting to 0, use speed 0.0
+        if percentage == 0:
+            closest_speed = 0.0
+        else:
+            # Find closest percentage and map to speed
+            closest_percent = min(PERCENT_TO_SPEED.keys(), key=lambda x: abs(x - percentage))
+            closest_speed = PERCENT_TO_SPEED.get(closest_percent)
 
         if closest_speed is None:
-            _LOGGER.error(f"Invalid percentage: {percentage}")
+            _LOGGER.error("Invalid percentage: %s", percentage)
             return
 
-        _LOGGER.debug(f"Setting zone {self._zone_idx} speed to {closest_speed}")
+        # If non-zero, remember as last known speed
+        if percentage > 0:
+            self._last_nonzero_percentage = percentage
+
+        _LOGGER.debug("Setting zone %s speed to %s", self._zone_idx, closest_speed)
 
         success = await self.coordinator.async_set_zone_speed(self._zone_idx, closest_speed)
         if success:
+            # Coordinator will refresh; write state to update immediately
             self.async_write_ha_state()
         else:
-            _LOGGER.error(f"Failed to set zone {self._zone_idx} speed")
+            _LOGGER.error("Failed to set zone %s speed", self._zone_idx)
 
 
 async def async_setup_entry(
@@ -159,10 +193,10 @@ async def async_setup_entry(
     enabled_zones: dict = hass.data[DOMAIN][config_entry.entry_id]["enabled_zones"]
 
     entities = []
-    
+
     for zone_idx in range(1, 4):
         if enabled_zones.get(f"zone_{zone_idx}", True):
-            zone_name = f"Zone {zone_idx}"
+            zone_name = hass.data[DOMAIN][config_entry.entry_id].get("zone_names", {}).get(zone_idx, f"Zone {zone_idx}")
             entity = GetAirZoneFan(coordinator, device_id, zone_idx, zone_name)
             entities.append(entity)
 

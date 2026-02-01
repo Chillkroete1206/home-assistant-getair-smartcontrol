@@ -1,7 +1,7 @@
 {
   "domain": "getair_smartcontrol",
   "name": "getAir SmartControl",
-  "codeowners": ["@Chillkroete1206"],
+  "codeowners": ["@your-github-username"],
   "config_flow": true,
   "documentation": "https://github.com/yourusername/home-assistant-getair-smartcontrol",
   "requirements": [],
@@ -11,4 +11,3 @@
   "integration_type": "service",
   "quality_scale": "internal"
 }
-

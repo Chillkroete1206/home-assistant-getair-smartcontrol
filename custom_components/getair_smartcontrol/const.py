@@ -1,4 +1,5 @@
 """Constants for getAir SmartControl integration."""
+"""Constants for getAir SmartControl integration."""
 import os
 
 DOMAIN = "getair_smartcontrol"

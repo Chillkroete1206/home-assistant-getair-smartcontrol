@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
-    BinarySensorDeviceClass,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -27,36 +26,40 @@ class GetAirBinarySensorEntityDescription(BinarySensorEntityDescription):
     data_key: str | None = None
 
 
+# Only keep system-level binary sensors here. Zone Silent/VOC are exposed as switches.
 BINARY_SENSOR_DESCRIPTIONS = [
     # System-level binary sensors
     GetAirBinarySensorEntityDescription(
-        key="system_modelock_state",
+        key="modelock",
         translation_key="system_modelock",
+        name="Modus-Sperre",
+        icon="mdi:lock-outline",
         data_key="modelock",
         zone_idx=None,
     ),
+    GetAirBinarySensorEntityDescription(
+        key="supports_auto_update",
+        translation_key="system_supports_auto_update",
+        name="Unterstützt Auto-Update",
+        icon="mdi:update",
+        data_key="supports_auto_update",
+        zone_idx=None,
+    ),
+    GetAirBinarySensorEntityDescription(
+        key="auto_update_enabled",
+        translation_key="system_auto_update_enabled",
+        name="Auto-Update aktiviert",
+        icon="mdi:download-circle-outline",
+        data_key="auto_update_enabled",
+        zone_idx=None,
+    ),
 ]
-
-# Add zone-specific binary sensors
-for zone_idx in range(1, 4):
-    for data_key, key_suffix, translation_key in [
-        ("auto_mode_voc", "auto_mode_voc", "zone_auto_mode_voc"),
-        ("auto_mode_silent", "auto_mode_silent", "zone_auto_mode_silent"),
-    ]:
-        BINARY_SENSOR_DESCRIPTIONS.append(
-            GetAirBinarySensorEntityDescription(
-                key=f"zone_{zone_idx}_{key_suffix}",
-                translation_key=translation_key,
-                data_key=data_key,
-                zone_idx=zone_idx,
-            )
-        )
 
 
 class GetAirBinarySensor(CoordinatorEntity, BinarySensorEntity):
     """Representation of a getAir binary sensor."""
 
-    _attr_has_entity_name = True
+    _attr_has_entity_name = False
     entity_description: GetAirBinarySensorEntityDescription
 
     def __init__(
@@ -71,10 +74,31 @@ class GetAirBinarySensor(CoordinatorEntity, BinarySensorEntity):
         self._device_id = device_id
         self._zone_idx = description.zone_idx
 
+        # Build clean entity_id
         if self._zone_idx:
-            self._attr_unique_id = f"{device_id}_zone_{self._zone_idx}_{description.key}"
+            zone_name = coordinator.data["zones"][self._zone_idx]["name"]
+            zone_name_clean = zone_name.lower().replace(" ", "_").replace("-", "_")
+            zone_name_clean = "".join(c if c.isalnum() or c == "_" else "_" for c in zone_name_clean)
+            self._attr_unique_id = f"getair_{device_id}_zone_{self._zone_idx}_{zone_name_clean}_{description.key}"
         else:
-            self._attr_unique_id = f"{device_id}_{description.key}"
+            self._attr_unique_id = f"getair_{device_id}_{description.key}"
+
+    @property
+    def name(self) -> str:
+        """Return the name of the binary sensor."""
+        # Get name from entity description
+        if hasattr(self.entity_description, 'name') and self.entity_description.name:
+            base_name = self.entity_description.name
+        else:
+            # Fallback: use key as name
+            base_name = self.entity_description.key.replace("_", " ").title()
+        
+        # For zone sensors, prepend zone name
+        if self._zone_idx and self.coordinator.data:
+            zone_name = self.coordinator.data["zones"][self._zone_idx]["name"]
+            return f"{zone_name} {base_name}"
+        
+        return base_name
 
     @property
     def device_info(self) -> DeviceInfo:
