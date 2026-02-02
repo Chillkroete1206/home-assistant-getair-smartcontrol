@@ -407,8 +407,9 @@ class GetAirCoordinator(DataUpdateCoordinator):
 
             if result:
                 _LOGGER.info("Successfully set zone %d speed to %s", zone_idx, speed)
-                # Don't call async_request_refresh here to avoid recursion
-                # The fan entity will call async_write_ha_state() to update immediately
+                # CRITICAL: Update coordinator data immediately after successful change
+                # The _sync method already did fetch() internally, now update our cache
+                await self._async_update_data_after_change()
             else:
                 _LOGGER.error("Failed to set zone %d speed to %s", zone_idx, speed)
 
@@ -429,6 +430,12 @@ class GetAirCoordinator(DataUpdateCoordinator):
                 _LOGGER.error("_set_zone_speed_sync: get_device returned None")
                 return False
 
+            # CRITICAL: Fetch current state BEFORE modifying
+            _LOGGER.debug("_set_zone_speed_sync: Fetching current state first...")
+            fetch_before = device.fetch()
+            if not fetch_before:
+                _LOGGER.warning("_set_zone_speed_sync: fetch() before returned False, continuing anyway...")
+
             _LOGGER.debug("_set_zone_speed_sync: Setting AUTOSET=False")
             device.AUTOSET = False
 
@@ -442,7 +449,19 @@ class GetAirCoordinator(DataUpdateCoordinator):
             push_result = device.push()
             _LOGGER.debug("_set_zone_speed_sync: Push result: %s", push_result)
 
-            return push_result
+            if not push_result:
+                _LOGGER.error("_set_zone_speed_sync: Push failed!")
+                return False
+
+            # CRITICAL: Fetch IMMEDIATELY after push to get updated state
+            _LOGGER.debug("_set_zone_speed_sync: Fetching new state after push...")
+            fetch_after = device.fetch()
+            if fetch_after:
+                _LOGGER.debug("_set_zone_speed_sync: Successfully fetched new state")
+            else:
+                _LOGGER.warning("_set_zone_speed_sync: fetch() after push returned False")
+
+            return True
 
         except Exception as err:
             _LOGGER.exception("_set_zone_speed_sync: Error: %s", err)
@@ -466,7 +485,7 @@ class GetAirCoordinator(DataUpdateCoordinator):
 
             if result:
                 _LOGGER.info("Successfully set zone %d mode to %s", zone_idx, mode)
-                await self.async_request_refresh()
+                await self._async_update_data_after_change()
             else:
                 _LOGGER.error("Failed to set zone %d mode to %s", zone_idx, mode)
 
@@ -487,6 +506,12 @@ class GetAirCoordinator(DataUpdateCoordinator):
                 _LOGGER.error("_set_zone_mode_sync: get_device returned None")
                 return False
 
+            # CRITICAL: Fetch current state BEFORE modifying
+            _LOGGER.debug("_set_zone_mode_sync: Fetching current state first...")
+            fetch_before = device.fetch()
+            if not fetch_before:
+                _LOGGER.warning("_set_zone_mode_sync: fetch() before returned False, continuing anyway...")
+
             _LOGGER.debug("_set_zone_mode_sync: Setting AUTOSET=False")
             device.AUTOSET = False
 
@@ -500,7 +525,19 @@ class GetAirCoordinator(DataUpdateCoordinator):
             push_result = device.push()
             _LOGGER.debug("_set_zone_mode_sync: Push result: %s", push_result)
 
-            return push_result
+            if not push_result:
+                _LOGGER.error("_set_zone_mode_sync: Push failed!")
+                return False
+
+            # CRITICAL: Fetch IMMEDIATELY after push to get updated state
+            _LOGGER.debug("_set_zone_mode_sync: Fetching new state after push...")
+            fetch_after = device.fetch()
+            if fetch_after:
+                _LOGGER.debug("_set_zone_mode_sync: Successfully fetched new state")
+            else:
+                _LOGGER.warning("_set_zone_mode_sync: fetch() after push returned False")
+
+            return True
 
         except Exception as err:
             _LOGGER.exception("_set_zone_mode_sync: Error: %s", err)
@@ -530,7 +567,7 @@ class GetAirCoordinator(DataUpdateCoordinator):
 
             if result:
                 _LOGGER.info("Successfully set zone %d %s to %s", zone_idx, property_name, value)
-                await self.async_request_refresh()
+                await self._async_update_data_after_change()
             else:
                 _LOGGER.error("Failed to set zone %d %s to %s", zone_idx, property_name, value)
 
@@ -556,6 +593,12 @@ class GetAirCoordinator(DataUpdateCoordinator):
                 _LOGGER.error("_set_zone_property_sync: get_device returned None")
                 return False
 
+            # CRITICAL: Fetch current state BEFORE modifying
+            _LOGGER.debug("_set_zone_property_sync: Fetching current state first...")
+            fetch_before = device.fetch()
+            if not fetch_before:
+                _LOGGER.warning("_set_zone_property_sync: fetch() before returned False, continuing anyway...")
+
             _LOGGER.debug("_set_zone_property_sync: Setting AUTOSET=False")
             device.AUTOSET = False
 
@@ -577,7 +620,19 @@ class GetAirCoordinator(DataUpdateCoordinator):
             push_result = device.push()
             _LOGGER.debug("_set_zone_property_sync: Push result: %s", push_result)
 
-            return push_result
+            if not push_result:
+                _LOGGER.error("_set_zone_property_sync: Push failed!")
+                return False
+
+            # CRITICAL: Fetch IMMEDIATELY after push to get updated state
+            _LOGGER.debug("_set_zone_property_sync: Fetching new state after push...")
+            fetch_after = device.fetch()
+            if fetch_after:
+                _LOGGER.debug("_set_zone_property_sync: Successfully fetched new state")
+            else:
+                _LOGGER.warning("_set_zone_property_sync: fetch() after push returned False")
+
+            return True
 
         except Exception as err:
             _LOGGER.exception("_set_zone_property_sync: Error: %s", err)
@@ -600,7 +655,7 @@ class GetAirCoordinator(DataUpdateCoordinator):
 
             if result:
                 _LOGGER.info("Successfully set system %s to %s", property_name, value)
-                await self.async_request_refresh()
+                await self._async_update_data_after_change()
             else:
                 _LOGGER.error("Failed to set system %s to %s", property_name, value)
 
@@ -618,6 +673,12 @@ class GetAirCoordinator(DataUpdateCoordinator):
                 _LOGGER.error("_set_system_property_sync: get_device returned None")
                 return False
 
+            # CRITICAL: Fetch current state BEFORE modifying
+            _LOGGER.debug("_set_system_property_sync: Fetching current state first...")
+            fetch_before = device.fetch()
+            if not fetch_before:
+                _LOGGER.warning("_set_system_property_sync: fetch() before returned False, continuing anyway...")
+
             try:
                 setattr(device, property_name, value)
             except Exception as err:
@@ -626,7 +687,20 @@ class GetAirCoordinator(DataUpdateCoordinator):
 
             push_result = device.push()
             _LOGGER.debug("_set_system_property_sync: Push result: %s", push_result)
-            return push_result
+            
+            if not push_result:
+                _LOGGER.error("_set_system_property_sync: Push failed!")
+                return False
+
+            # CRITICAL: Fetch IMMEDIATELY after push to get updated state
+            _LOGGER.debug("_set_system_property_sync: Fetching new state after push...")
+            fetch_after = device.fetch()
+            if fetch_after:
+                _LOGGER.debug("_set_system_property_sync: Successfully fetched new state")
+            else:
+                _LOGGER.warning("_set_system_property_sync: fetch() after push returned False")
+
+            return True
         except Exception as err:
             _LOGGER.exception("_set_system_property_sync: Error: %s", err)
             return False
@@ -644,3 +718,30 @@ class GetAirCoordinator(DataUpdateCoordinator):
                 self._methods_logged = True
         except Exception as err:
             _LOGGER.debug("_log_device_methods: Could not log methods: %s", err)
+
+    async def _async_update_data_after_change(self) -> None:
+        """
+        Update coordinator data immediately after a successful change.
+        
+        This method is called after push() + fetch() in the sync methods,
+        so the device object has fresh data. We just need to extract it
+        and update self.data.
+        """
+        try:
+            _LOGGER.debug("_async_update_data_after_change: Updating coordinator data...")
+            
+            # Call _async_update_data which fetches from the device
+            new_data = await self._async_update_data()
+            
+            if new_data:
+                # Update self.data directly (async_set_updated_data would trigger listeners)
+                self.data = new_data
+                # Trigger a state update for all entities
+                self.async_set_updated_data(new_data)
+                _LOGGER.debug("_async_update_data_after_change: Successfully updated data")
+            else:
+                _LOGGER.warning("_async_update_data_after_change: Update returned no data")
+                
+        except Exception as err:
+            _LOGGER.warning("_async_update_data_after_change: Error updating data: %s", err)
+
