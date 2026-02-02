@@ -205,6 +205,8 @@ for zone_idx in range(1, 4):
         ("target_temp", "target_temperature_celsius", "zone_target_temperature", "Zieltemperatur", "mdi:thermometer-auto", UnitOfTemperature.CELSIUS, None, SensorStateClass.MEASUREMENT),
         ("target_hmdty_level", "target_humidity_level", "zone_target_humidity", "Ziel-Luftfeuchtigkeitsbereich", "mdi:water-percent-alert", None, None, None),
         ("time_profile", "time_profile_id", "zone_time_profile", "Aktives Zeitprofil", "mdi:clock-time-eight-outline", None, None, None),
+        ("mode_deadline_datetime", "mode_deadline_readable", "zone_mode_deadline_datetime", "Modus-Deadline", "mdi:calendar-clock", None, SensorDeviceClass.TIMESTAMP, None),
+        ("mode_deadline_duration", "mode_deadline_remaining_minutes", "zone_mode_deadline_remaining", "Modus-Deadline (verbleibend)", "mdi:timer-sand", "min", None, SensorStateClass.MEASUREMENT),
     ]:
         SENSOR_DESCRIPTIONS.append(
             GetAirSensorEntityDescription(
@@ -300,9 +302,37 @@ class GetAirSensor(CoordinatorEntity, SensorEntity):
             system_data = self.coordinator.data["system"]
             value = system_data.get(self.entity_description.data_key)
 
+        # Special handling for mode_deadline sensors
+        if self._zone_idx and self.entity_description.data_key == "mode_deadline_datetime":
+            # Convert Unix timestamp to datetime object for TIMESTAMP sensor
+            deadline_unix = zone_data.get("mode_deadline")
+            if deadline_unix and deadline_unix > 0:
+                try:
+                    from datetime import datetime, timezone
+                    dt = datetime.fromtimestamp(int(deadline_unix), tz=timezone.utc)
+                    return dt  # Return datetime object, not string!
+                except (ValueError, TypeError, OSError):
+                    return None
+            return None
+        
+        if self._zone_idx and self.entity_description.data_key == "mode_deadline_duration":
+            # Calculate remaining minutes
+            deadline_unix = zone_data.get("mode_deadline")
+            if deadline_unix and deadline_unix > 0:
+                try:
+                    import time
+                    current_unix = int(time.time())
+                    remaining_seconds = int(deadline_unix) - current_unix
+                    remaining_minutes = max(0, remaining_seconds // 60)
+                    return remaining_minutes
+                except (ValueError, TypeError):
+                    return 0
+            return 0
+
         # Format datetime strings (boot_time, last_update, notify_time)
         if self.entity_description.data_key in ("boot_time", "last_update", "notify_time") and isinstance(value, str):
             return format_datetime(value)
+
 
         # Show "Keine" for empty notification
         if self.entity_description.data_key == "notification" and not value:

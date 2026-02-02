@@ -62,18 +62,35 @@ for zone_idx in range(1, 4):
         )
     )
     
-    # Mode deadline (0x2021) - Unix timestamp in minutes
+    # Mode deadline (0x2021) - UNIX TIMESTAMP (direkt, für Power-User)
     NUMBER_DESCRIPTIONS.append(
         GetAirNumberEntityDescription(
-            key=f"{zone_idx}_{{zone_name}}_mode_deadline",
-            translation_key="zone_mode_deadline_control",
-            name="Modus-Deadline (Minuten)",
+            key=f"{zone_idx}_{{zone_name}}_mode_deadline_unix",
+            translation_key="zone_mode_deadline_unix_control",
+            name="Modus-Deadline (Unix)",
             data_key="mode_deadline",
             native_min_value=0,
-            native_max_value=1440,  # 24 hours in minutes
+            native_max_value=2147483647,  # Max Unix timestamp (2038)
             native_step=1,
             mode=NumberMode.BOX,
-            icon="mdi:timer-off-outline",
+            icon="mdi:timer-cog-outline",
+            zone_idx=zone_idx,
+            entity_registry_enabled_default=False,  # Hidden by default
+        )
+    )
+    
+    # Mode deadline OFFSET (0-120 Minuten ab jetzt, benutzerfreundlich!)
+    NUMBER_DESCRIPTIONS.append(
+        GetAirNumberEntityDescription(
+            key=f"{zone_idx}_{{zone_name}}_mode_deadline_offset",
+            translation_key="zone_mode_deadline_offset_control",
+            name="Modus-Dauer (Minuten ab jetzt)",
+            data_key="mode_deadline_offset",  # Special handling
+            native_min_value=0,
+            native_max_value=120,  # 0-120 Minuten
+            native_step=5,  # 5-Minuten-Schritte
+            mode=NumberMode.SLIDER,
+            icon="mdi:timer-plus-outline",
             zone_idx=zone_idx,
         )
     )
@@ -132,7 +149,28 @@ class GetAirNumber(CoordinatorEntity, NumberEntity):
             return None
 
         zone_data = self.coordinator.data["zones"].get(self._zone_idx, {})
-        value = zone_data.get(self.entity_description.data_key)
+        data_key = self.entity_description.data_key
+        
+        # Special handling for mode_deadline_offset
+        if data_key == "mode_deadline_offset":
+            # Show remaining minutes until deadline
+            deadline_unix = zone_data.get("mode_deadline")
+            
+            if deadline_unix is None or deadline_unix == 0:
+                return 0  # No deadline set
+            
+            try:
+                import time
+                current_unix = int(time.time())
+                remaining_seconds = int(deadline_unix) - current_unix
+                remaining_minutes = max(0, remaining_seconds // 60)
+                
+                return float(remaining_minutes)
+            except (ValueError, TypeError):
+                return 0
+        
+        # Normal property - read directly
+        value = zone_data.get(data_key)
         
         if value is not None:
             try:
@@ -140,7 +178,7 @@ class GetAirNumber(CoordinatorEntity, NumberEntity):
             except (ValueError, TypeError):
                 _LOGGER.warning(
                     "Could not convert %s value to float: %s",
-                    self.entity_description.data_key,
+                    data_key,
                     value,
                 )
                 return None
@@ -149,25 +187,49 @@ class GetAirNumber(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set the number value."""
-        _LOGGER.debug(
-            "Setting %s for zone %s to %s",
-            self.entity_description.data_key,
-            self._zone_idx,
-            value,
-        )
+        data_key = self.entity_description.data_key
         
-        success = await self.coordinator.async_set_zone_property(
-            self._zone_idx,
-            self.entity_description.data_key,
-            value,
-        )
+        # Special handling for mode_deadline_offset
+        if data_key == "mode_deadline_offset":
+            # User entered minutes from now
+            import time
+            current_unix = int(time.time())
+            minutes_offset = int(value)
+            deadline_unix = current_unix + (minutes_offset * 60)
+            
+            _LOGGER.debug(
+                "Setting mode_deadline_offset: %d minutes from now (Unix: %d)",
+                minutes_offset,
+                deadline_unix,
+            )
+            
+            # Write to actual mode_deadline property
+            success = await self.coordinator.async_set_zone_property(
+                self._zone_idx,
+                "mode_deadline",
+                deadline_unix,
+            )
+        else:
+            # Normal property - write directly
+            _LOGGER.debug(
+                "Setting %s for zone %s to %s",
+                data_key,
+                self._zone_idx,
+                value,
+            )
+            
+            success = await self.coordinator.async_set_zone_property(
+                self._zone_idx,
+                data_key,
+                value,
+            )
         
         if success:
             await self.coordinator.async_request_refresh()
         else:
             _LOGGER.error(
                 "Failed to set %s for zone %s",
-                self.entity_description.data_key,
+                data_key if data_key != "mode_deadline_offset" else "mode_deadline",
                 self._zone_idx,
             )
 

@@ -134,14 +134,29 @@ class GetAirCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("_fetch_device_data: Could not read device state: %s", debug_err)
 
             try:
+                # CRITICAL: First fetch after connect() often fails with 401
+                # Always try twice to handle token activation delay
                 fetch_result = device.fetch()
-                _LOGGER.debug("_fetch_device_data: device.fetch() returned: %s", fetch_result)
+                _LOGGER.debug("_fetch_device_data: device.fetch() returned: %s (attempt 1/2)", fetch_result)
 
                 if not fetch_result:
-                    # Check if it's a 401 authentication error
-                    # If so, try to reconnect once
+                    _LOGGER.info("_fetch_device_data: First fetch failed, retrying immediately (token may need time to activate)...")
+                    
+                    # Short wait for token to become active
+                    import time
+                    time.sleep(0.3)
+                    
+                    # Second attempt - this usually succeeds
+                    fetch_result = device.fetch()
+                    _LOGGER.debug("_fetch_device_data: device.fetch() returned: %s (attempt 2/2)", fetch_result)
+                    
+                    if fetch_result:
+                        _LOGGER.info("_fetch_device_data: Second fetch succeeded!")
+
+                if not fetch_result:
+                    # Both immediate attempts failed - now try reconnect
                     _LOGGER.warning(
-                        "_fetch_device_data: device.fetch() failed. Attempting reconnection..."
+                        "_fetch_device_data: Both initial fetch attempts failed. Attempting reconnection..."
                     )
 
                     # Reset the reconnect flag in the API if it exists
@@ -224,26 +239,46 @@ class GetAirCoordinator(DataUpdateCoordinator):
 
                         error_info = ", ".join(error_details) if error_details else "No additional info available"
 
-                        _LOGGER.error(
+                        _LOGGER.warning(
                             "_fetch_device_data: device.fetch() failed for device %s after retry. "
                             "Details: %s. "
+                            "Returning cached data to keep polling alive. "
                             "This could indicate: authentication issues, network problems, "
                             "or device not responding.",
                             self.device_id,
                             error_info
                         )
-                        raise UpdateFailed(f"Could not fetch device data - fetch() returned False. {error_info}")
+                        
+                        # CRITICAL: Return cached data instead of raising exception!
+                        # This prevents the coordinator from stopping polling due to backoff
+                        if self.data:
+                            _LOGGER.info("_fetch_device_data: Returning cached data to keep coordinator polling")
+                            return self.data
+                        else:
+                            # First update ever failed - we have to raise
+                            _LOGGER.error("_fetch_device_data: No cached data available, raising exception")
+                            raise UpdateFailed(f"First fetch failed - no cached data available. {error_info}")
+
 
             except UpdateFailed:
                 raise
             except Exception as fetch_exception:
-                _LOGGER.error(
-                    "_fetch_device_data: Exception during device.fetch(): %s (type: %s)",
+                _LOGGER.warning(
+                    "_fetch_device_data: Exception during device.fetch(): %s (type: %s). "
+                    "Returning cached data to keep polling alive.",
                     fetch_exception,
                     type(fetch_exception).__name__,
                     exc_info=True
                 )
-                raise UpdateFailed(f"Exception during device.fetch(): {fetch_exception}")
+                # CRITICAL: Return cached data instead of raising exception
+                if self.data:
+                    _LOGGER.info("_fetch_device_data: Returning cached data after fetch exception")
+                    return self.data
+                else:
+                    # First update ever - have to raise
+                    _LOGGER.error("_fetch_device_data: No cached data, raising UpdateFailed")
+                    raise UpdateFailed(f"Exception during device.fetch(): {fetch_exception}")
+
 
             _LOGGER.debug("_fetch_device_data: Successfully fetched data, compiling system info...")
 
@@ -322,13 +357,21 @@ class GetAirCoordinator(DataUpdateCoordinator):
                 }
                 _LOGGER.debug("_fetch_device_data: System data compiled successfully")
             except AttributeError as attr_err:
-                _LOGGER.error(
+                _LOGGER.warning(
                     "_fetch_device_data: Missing attribute while accessing system data: %s. "
+                    "This may indicate API changes. Returning cached data. "
                     "Available attributes: %s",
                     attr_err,
                     dir(device),
                 )
-                raise UpdateFailed(f"Device object missing required attributes: {attr_err}")
+                # Try to return cached data
+                if self.data:
+                    _LOGGER.info("_fetch_device_data: Returning cached data after AttributeError")
+                    return self.data
+                else:
+                    _LOGGER.error("_fetch_device_data: No cached data, raising UpdateFailed")
+                    raise UpdateFailed(f"Device object missing required attributes: {attr_err}")
+
 
             # Fetch data for each zone
             _LOGGER.debug("_fetch_device_data: Fetching data for zones 1-3...")
@@ -382,12 +425,21 @@ class GetAirCoordinator(DataUpdateCoordinator):
         except UpdateFailed:
             raise
         except Exception as err:
-            _LOGGER.exception(
-                "_fetch_device_data: Unexpected error: %s (type: %s)",
+            _LOGGER.warning(
+                "_fetch_device_data: Unexpected error: %s (type: %s). "
+                "Returning cached data to keep polling alive.",
                 err,
-                type(err).__name__
+                type(err).__name__,
+                exc_info=True
             )
-            raise UpdateFailed(f"Unexpected error fetching device data: {err}")
+            # CRITICAL: Return cached data to prevent polling stop
+            if self.data:
+                _LOGGER.info("_fetch_device_data: Returning cached data after unexpected error")
+                return self.data
+            else:
+                _LOGGER.error("_fetch_device_data: No cached data, raising UpdateFailed")
+                raise UpdateFailed(f"Unexpected error fetching device data: {err}")
+
 
     async def async_set_zone_speed(self, zone_idx: int, speed: float) -> bool:
         """
