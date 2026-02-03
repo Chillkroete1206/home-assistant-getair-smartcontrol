@@ -24,7 +24,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: Final = [Platform.BINARY_SENSOR, Platform.FAN, Platform.SENSOR, Platform.SELECT, Platform.SWITCH, Platform.NUMBER, Platform.DATETIME]
+PLATFORMS: Final = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.FAN, Platform.SENSOR, Platform.SELECT, Platform.SWITCH, Platform.NUMBER, Platform.DATETIME]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

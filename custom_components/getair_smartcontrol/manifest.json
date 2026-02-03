@@ -5,11 +5,13 @@
   "config_flow": true,
   "documentation": "https://github.com/Chillkroete1206/home-assistant-getair-smartcontrol",
   "requirements": [],
-  "version": "0.6.0",
+  "version": "0.7.1",
   "issue_tracker": "https://github.com/Chillkroete1206/home-assistant-getair-smartcontrol/issues",
   "iot_class": "cloud_polling",
   "integration_type": "service",
   "quality_scale": "internal"
 }
+
+
 
 

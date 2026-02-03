@@ -220,6 +220,14 @@
       "zone_name": {
         "name": "Zonenname"
       }
+    },
+    "button": {
+      "zone_reset_filter_runtime": {
+        "name": "Filter-Laufzeit zurücksetzen"
+      },
+      "zone_reset_mode_deadline": {
+        "name": "Modus-Deadline zurücksetzen"
+      }
     }
   },
   "entity_component": {

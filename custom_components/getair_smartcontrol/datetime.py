@@ -1,7 +1,7 @@
 """Datetime entities for getAir SmartControl."""
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 
 from homeassistant.components.datetime import DateTimeEntity, DateTimeEntityDescription
 from homeassistant.config_entries import ConfigEntry
@@ -100,8 +100,9 @@ class GetAirDateTime(CoordinatorEntity, DateTimeEntity):
             return None
         
         try:
-            # Convert Unix timestamp to datetime
-            return datetime.fromtimestamp(int(deadline_unix), tz=timezone.utc)
+            # Convert Unix timestamp to datetime with Home Assistant's timezone
+            import homeassistant.util.dt as dt_util
+            return datetime.fromtimestamp(int(deadline_unix), tz=dt_util.DEFAULT_TIME_ZONE)
         except (ValueError, TypeError, OSError):
             return None
 

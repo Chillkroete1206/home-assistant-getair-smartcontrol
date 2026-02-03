@@ -308,9 +308,11 @@ class GetAirSensor(CoordinatorEntity, SensorEntity):
             deadline_unix = zone_data.get("mode_deadline")
             if deadline_unix and deadline_unix > 0:
                 try:
-                    from datetime import datetime, timezone
-                    dt = datetime.fromtimestamp(int(deadline_unix), tz=timezone.utc)
-                    return dt  # Return datetime object, not string!
+                    from datetime import datetime
+                    import homeassistant.util.dt as dt_util
+                    # Use Home Assistant's timezone utility to get the configured timezone
+                    dt = datetime.fromtimestamp(int(deadline_unix), tz=dt_util.DEFAULT_TIME_ZONE)
+                    return dt  # Return datetime object with correct timezone
                 except (ValueError, TypeError, OSError):
                     return None
             return None

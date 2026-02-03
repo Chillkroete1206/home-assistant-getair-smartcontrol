@@ -284,20 +284,36 @@ class GetAirCoordinator(DataUpdateCoordinator):
 
             # Compile system data
             try:
-                # Convert boot_time Unix timestamp to ISO format datetime
+                # Convert boot_time Unix timestamp to ISO format datetime with local timezone
                 boot_time_unix = getattr(device, 'boot_time', None)
                 boot_time_str = None
                 if boot_time_unix:
                     try:
+                        import homeassistant.util.dt as dt_util
                         boot_datetime = datetime.fromtimestamp(
-                            boot_time_unix, tz=timezone.utc
+                            boot_time_unix, tz=dt_util.DEFAULT_TIME_ZONE
                         )
                         boot_time_str = boot_datetime.isoformat()
                     except (ValueError, OSError, OverflowError) as e:
                         _LOGGER.warning("Could not convert boot_time: %s", e)
                         boot_time_str = str(boot_time_unix)
 
+                # Convert notify_time Unix timestamp to ISO format datetime with local timezone
+                notify_time_unix = getattr(device._system, 'notify_time', None)
+                notify_time_str = None
+                if notify_time_unix:
+                    try:
+                        import homeassistant.util.dt as dt_util
+                        notify_datetime = datetime.fromtimestamp(
+                            notify_time_unix, tz=dt_util.DEFAULT_TIME_ZONE
+                        )
+                        notify_time_str = notify_datetime.isoformat()
+                    except (ValueError, OSError, OverflowError, TypeError) as e:
+                        _LOGGER.warning("Could not convert notify_time: %s", e)
+                        notify_time_str = str(notify_time_unix) if notify_time_unix else None
+
                 # Compile all system information
+                import homeassistant.util.dt as dt_util
                 system_data = {
                     "system_id": device.device_id,
                     "system_type": device.system_type,
@@ -315,10 +331,10 @@ class GetAirCoordinator(DataUpdateCoordinator):
                     "num_zones": getattr(device._system, 'num_zones', 3),
                     "modelock": getattr(device._system, 'modelock', False),
                     "notification": getattr(device._system, 'notification', ""),
-                    "notify_time": getattr(device._system, 'notify_time', None),
+                    "notify_time": notify_time_str,
                     "supports_auto_update": getattr(device._system, 'supports_auto_update', False),
                     "auto_update_enabled": getattr(device._system, 'auto_update_enabled', False),
-                    "last_update": datetime.now(tz=timezone.utc).isoformat(),
+                    "last_update": datetime.now(tz=dt_util.DEFAULT_TIME_ZONE).isoformat(),
                     "connection_status": "online",
                 }
 
